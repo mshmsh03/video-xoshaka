@@ -1,0 +1,9 @@
+# The author's personal example video (real people in it). Kept locally, not published.
+assets/examples/LifeWithClaude.tsx
+assets/examples/scenes/
+assets/examples/story.json
+
+node_modules/
+out/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,26 @@
+{
+  "voice": "bm_george",
+  "speed": 1.1,
+  "fps": 30,
+  "transitionFrames": 15,
+  "leadIn": 0.35,
+  "tail": 0.45,
+  "scenes": [
+    {
+      "id": "freeze",
+      "text": "Yep. That's me. You're probably wondering how I got here.",
+      "lead": 1.9,
+      "hold": 2
+    },
+    {
+      "id": "beginning",
+      "text": "A few months ago, I knew nothing. And I mean nothing.",
+      "hold": 1
+    },
+    {
+      "id": "end",
+      "text": "And yes, Claude made this video too. Even the jokes. Especially the bad ones.",
+      "hold": 1.8
+    }
+  ]
+}

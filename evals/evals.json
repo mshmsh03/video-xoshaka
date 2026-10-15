@@ -1,0 +1,112 @@
+{
+  "skill_name": "video-xoshaka",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "My best friend Sara just finished her first year as an ER nurse and her birthday is Friday. I want to make her a funny video about her year. I have a few photos of her and a short clip of her dancing in scrubs in C:\\Users\\me\\Pictures\\sara. Our friend group is me, Lana and Dilan. Can you make it?",
+      "expected_output": "A plan and script for a ~1 minute funny vertical birthday video about Sara's first nursing year, using her clip and photos, gags timed to narration, real music with ducking, privacy care (no patient info), and a verification plan.",
+      "files": [],
+      "assertions": [
+        "voice-picked-by-ear: the plan has the person choose the narrator from voice samples (or their own voice) rather than picking a voice/gender for them",
+        "upfront-questions: the plan asks (or assumes answers to) whether real names/faces may appear, which photos/clips to use, and the target length",
+        "script-file-valid: a story.json (or equivalent script file) exists, parses, and every scene has an id and narration text",
+        "own-clip-hook: the video opens with a hook built from the hero's own clip or photo (e.g. freeze-frame) in the first few seconds",
+        "gags-on-words: each gag is tied to a specific narration word or exact timestamp, not just 'during the scene'",
+        "one-sincere-beat: there is a sincere, joke-free beat near the end",
+        "real-music-ducked: music comes from a real royalty-free catalog or the user (not synthesized in code) and dips under the narration",
+        "privacy-care: the plan names specific private things to keep out (e.g. patient/client details, money, plates, secrets)",
+        "verification-before-delivery: the plan checks rendered stills/frames and measures audio levels before handing over",
+        "length-and-format: target length is 45-90 seconds and the format is vertical 9:16 (1080x1920)",
+        "honest-delivery: the delivery message says what could not be verified (e.g. audio by ear) or asks the user to check it"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "make a funny video about how i learned to code with claude this year, from knowing nothing to shipping 2 apps for clients. i want to post it on instagram reels",
+      "expected_output": "A plan and script for a ~1 minute funny Reels video of a coding journey: hook opener, chapters, real screenshots of the apps, gags on words, one sincere beat, royalty-free music, verification.",
+      "files": [],
+      "assertions": [
+        "voice-picked-by-ear: the plan has the person choose the narrator from voice samples (or their own voice) rather than picking a voice/gender for them",
+        "upfront-questions: the plan asks (or assumes answers to) whether real names/faces may appear, which photos/clips to use, and the target length",
+        "script-file-valid: a story.json (or equivalent script file) exists, parses, and every scene has an id and narration text",
+        "own-clip-hook: the video opens with a hook built from the hero's own clip or photo (e.g. freeze-frame) in the first few seconds",
+        "gags-on-words: each gag is tied to a specific narration word or exact timestamp, not just 'during the scene'",
+        "one-sincere-beat: there is a sincere, joke-free beat near the end",
+        "real-music-ducked: music comes from a real royalty-free catalog or the user (not synthesized in code) and dips under the narration",
+        "privacy-care: the plan names specific private things to keep out (e.g. patient/client details, money, plates, secrets)",
+        "verification-before-delivery: the plan checks rendered stills/frames and measures audio levels before handing over",
+        "length-and-format: target length is 45-90 seconds and the format is vertical 9:16 (1080x1920)",
+        "honest-delivery: the delivery message says what could not be verified (e.g. audio by ear) or asks the user to check it"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I run a small coffee shop and we're launching a new summer menu next Saturday. Make me a 30 second video for Instagram Reels and the feed. I have photos of the three new drinks and our logo. Keep it classy, no jokes.",
+      "expected_output": "A plan and script for a ~30 second serious vertical promo for a menu launch: hook in the first seconds, the three real drinks, the launch date and where to find the shop as the call to action, real music, captions, verification.",
+      "files": [],
+      "assertions": [
+        "style-fits-purpose: the plan picks a promo style with a classy, non-comedic tone and does not add meme gags, record scratches or joke counters",
+        "upfront-questions: the plan asks (or assumes answers to) the voice, whether prices and names may appear, and the format/length",
+        "format-by-platform: the plan sets a vertical 9:16 (1080x1920) composition, or says how it handles both the Reels and the feed formats, and keeps text out of the platform safe zones",
+        "hook-early: the first two or three seconds show the drink or the news, not a slow logo intro",
+        "real-assets: the visuals use the person's own photos and real logo (not redrawn, not stock-looking)",
+        "claims-from-person: dates, drink names and prices come from the person and are not invented",
+        "call-to-action: the launch date and where to find the shop are on screen long enough to read",
+        "captions-on: captions are included because many viewers watch muted",
+        "music-fits-tone: music is real royalty-free and chosen for a classy, warm mood, ducked under any narration",
+        "verification-before-delivery: the plan checks rendered stills/frames and measures audio levels before handing over",
+        "honest-delivery: the delivery message says what could not be verified (e.g. audio by ear) or asks the user to check it"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "I want a 2 minute video that teaches my classmates how to publish a React site to GitHub Pages. 16:9, for YouTube. I'll give you screen recordings.",
+      "expected_output": "A plan and script for a ~2 minute landscape tutorial: what the viewer will have at the end, the steps in order with chapter labels, highlights on the exact controls, a final check, calm narration with captions, verification of every step.",
+      "files": [],
+      "assertions": [
+        "style-fits-purpose: the plan picks a tutorial style with a clear, patient tone and no forced jokes",
+        "format-by-platform: the composition is landscape 16:9 (1920x1080), with captions in the lower third and layouts repositioned rather than copied from vertical",
+        "structure: the script opens with what the viewer will have at the end, then numbered steps in order, one step per scene, then a final check",
+        "real-screens: the visuals use the person's real screen recordings, with a highlight or zoom on the exact control being used",
+        "accuracy-check: the plan verifies every step (the person confirms each one or the steps are run) before delivery",
+        "secrets-hidden: the plan hides tokens, passwords, emails and private repo names in the recordings",
+        "voice-picked-by-ear: the plan has the person choose the narrator from voice samples (or their own voice)",
+        "captions-on: captions are included",
+        "music-fits-tone: music is absent or very quiet and ducked under the narration",
+        "verification-before-delivery: the plan checks rendered stills/frames and measures audio levels before handing over",
+        "honest-delivery: the delivery message says what could not be verified (e.g. audio by ear) or asks the user to check it"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "make me a video",
+      "expected_output": "No building yet. The skill interviews the person: multiple-choice rounds for style, where it will be posted, length and voice, then look and feel, then names/screens/captions/ending, then a free-text round, then a recap and a saved brief.md, and it stops for approval before writing the script.",
+      "files": [],
+      "assertions": [
+        "interview-first: the first action is asking questions (AskUserQuestion or an equivalent list), not scaffolding a project or writing a script",
+        "recommended-defaults: each multiple-choice question puts a recommended option first and lets the person type their own answer",
+        "rounds-not-wall: the questions are grouped in rounds of at most four, not one long list",
+        "free-text-round: it asks for what only the person can say (the point in one sentence, the real moments or facts, the sincere line or call to action, what to never show, who is who, references, file locations)",
+        "people-decisions-theirs: the voice, who may be named or shown, and what is private are left for the person to decide, never defaulted",
+        "language-asked: it asks which language the video is in when that is not obvious",
+        "recap-and-save: it restates the brief as a short list, asks 'Anything to change?', and saves it as brief.md before building",
+        "gate-before-build: it shows the script and storyboard and waits for a yes before building scenes",
+        "no-invented-answers: skipped questions get a clearly marked placeholder or a follow-up, not invented content"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "just make it, a 20 second video announcing my shop opens Saturday at 4pm, handle is @mycafe. no time for questions",
+      "expected_output": "Quick mode: round 1 only (or fewer, since style, length and call to action are given), defaults listed under 'Assumptions I made', and the person-decisions (voice, names, private things) still left for them. Waits at the script gate.",
+      "files": [],
+      "assertions": [
+        "quick-mode: it asks at most the round 1 basics and takes defaults for the rest instead of running all rounds",
+        "uses-given-facts: the date, time and handle from the prompt are used exactly and on screen long enough to read",
+        "assumptions-listed: every defaulted choice is listed in the recap under assumptions so the person can correct it",
+        "person-decisions-kept: the voice is offered as samples and nothing private or about named people is defaulted",
+        "format-and-length: vertical 9:16 at about 20 seconds with captions outside the platform safe zones",
+        "gate-before-render: it shows the script/storyboard and the preview and does not render the final file before approval"
+      ]
+    }
+  ]
+}
