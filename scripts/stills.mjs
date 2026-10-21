@@ -24,7 +24,7 @@ const npx = (args, options) =>
 const [composition, ...rest] = process.argv.slice(2);
 const flagIndex = rest.indexOf("--voice");
 const voicePath = flagIndex >= 0 ? rest[flagIndex + 1] : "src/story/voice.json";
-const specs = rest.filter((_, i) => i !== flagIndex && i !== flagIndex + 1);
+const specs = rest.filter((_, i) => flagIndex < 0 || (i !== flagIndex && i !== flagIndex + 1));
 if (!composition || specs.length === 0) {
   throw new Error("Usage: stills.mjs <CompositionId> <frame|end:scene|word@scene+sec> ...");
 }

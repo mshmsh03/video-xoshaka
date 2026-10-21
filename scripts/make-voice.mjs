@@ -1,13 +1,20 @@
-// Narrates a story.json with the local Kokoro voice model (free, offline after
-// the first ~330 MB model download). Writes one WAV per scene and a voice.json
-// with each scene's length in frames and word timings for the captions.
+// Narrates a story.json. Writes one WAV per scene and a voice.json with each
+// scene's length in frames and word timings for the captions. The voice name
+// picks the engine:
+// - Kokoro ("bm_george"): local and free, offline after the first ~330 MB
+//   model download. Needs `npm i -D kokoro-js`.
+// - Microsoft Edge ("ar-IQ-RanaNeural"): free and online, many languages
+//   including Arabic, with measured word timings. Needs Python with
+//   `python -m pip install edge-tts` (scripts/edge-voice.py), and ffmpeg or the
+//   copy bundled with Remotion.
 //
-// Run from the Remotion project root (needs `npm i -D kokoro-js`):
+// Run from the Remotion project root:
 //   node scripts/make-voice.mjs [--story src/story/story.json]
 //     [--out src/story/voice.json] [--audio public/voice]
 
+import { execFileSync, execSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { KokoroTTS } from "kokoro-js";
+import { fileURLToPath } from "node:url";
 
 const arg = (name, fallback) => {
   const i = process.argv.indexOf(`--${name}`);
@@ -21,9 +28,11 @@ const AUDIO_SRC = AUDIO_DIR.replace(/^public\//, "");
 
 const story = JSON.parse(readFileSync(STORY, "utf8"));
 const { fps, transitionFrames, leadIn, tail } = story;
+// Edge voice names look like "ar-IQ-RanaNeural"; Kokoro's like "bm_george".
+const EDGE = /^[a-z]{2,3}-.+Neural$/.test(story.voice);
 
-// Cut the model's leading and trailing silence, keeping a little air.
-const trim = (samples, sr) => {
+// Where the speech starts and ends, keeping a little air around it.
+const speechRange = (samples, sr) => {
   let peak = 0;
   for (const v of samples) peak = Math.max(peak, Math.abs(v));
   const threshold = peak * 0.02;
@@ -31,11 +40,14 @@ const trim = (samples, sr) => {
   while (first < samples.length && Math.abs(samples[first]) < threshold) first++;
   let last = samples.length - 1;
   while (last > first && Math.abs(samples[last]) < threshold) last--;
-  return samples.slice(
+  return [
     Math.max(0, first - Math.round(0.03 * sr)),
     Math.min(samples.length, last + Math.round(0.08 * sr)),
-  );
+  ];
 };
+
+// Cut the model's leading and trailing silence, keeping a little air.
+const trim = (samples, sr) => samples.slice(...speechRange(samples, sr));
 
 // Every scene at the same loudness (-20 dBFS RMS), never above -1 dBFS.
 const normalize = (samples) => {
@@ -133,7 +145,7 @@ const alignBreaks = (breaks, pauses) => {
 const timeWords = (text, pauses, duration) => {
   const words = text.split(/\s+/);
   const isBreak = (word, i) =>
-    i < words.length - 1 && /[.,:;?!]$/.test(word) && !ABBREVIATION.test(word);
+    i < words.length - 1 && /[.,:;?!،؛؟]$/.test(word) && !ABBREVIATION.test(word);
 
   // Where each break would fall if speech ran at an even pace, with extra time
   // for the stop itself.
@@ -204,25 +216,139 @@ const writeWav = (path, samples, sr) => {
   writeFileSync(path, buf);
 };
 
-const tts = await KokoroTTS.from_pretrained("onnx-community/Kokoro-82M-v1.0-ONNX", {
-  dtype: "fp32",
-  device: "cpu",
-});
+// npx is a .cmd on Windows, which Node only runs through a shell: pass one
+// quoted command string there instead of an argument list.
+const npx = (args, options) =>
+  process.platform === "win32"
+    ? execSync(`npx ${args.map((a) => (/[\s"]/.test(a) ? `"${a.replace(/"/g, '\\"')}"` : a)).join(" ")}`, options)
+    : execFileSync("npx", args, options);
+
+// Decodes an audio file to mono samples with ffmpeg, or with the copy bundled
+// with Remotion when ffmpeg isn't on the PATH. That copy can't write raw
+// samples, so both go through a 16-bit WAV next to the file.
+const decode = (file, sr) => {
+  const wav = file.replace(/\.\w+$/, ".wav");
+  const args = ["-v", "error", "-y", "-i", file, "-ac", "1", "-ar", String(sr), "-c:a", "pcm_s16le", wav];
+  try {
+    execFileSync("ffmpeg", args);
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+    npx(["remotion", "ffmpeg", ...args]);
+  }
+  const buf = readFileSync(wav);
+  let pos = 12;
+  while (buf.toString("ascii", pos, pos + 4) !== "data") {
+    const size = buf.readUInt32LE(pos + 4);
+    pos += 8 + size + (size % 2);
+  }
+  const samples = new Float32Array(buf.readUInt32LE(pos + 4) / 2);
+  for (let i = 0; i < samples.length; i++) samples[i] = buf.readInt16LE(pos + 8 + i * 2) / 32768;
+  return samples;
+};
+
+const PYTHON = process.env.PYTHON ?? (process.platform === "win32" ? "python" : "python3");
+const EDGE_SCRIPT = fileURLToPath(new URL("edge-voice.py", import.meta.url));
+
+// Speaks a line through scripts/edge-voice.py and returns when each word is
+// said, in seconds. A speed of 1.1 becomes Edge's rate "+10%".
+const edgeSpeak = (text, voice, speed, out) => {
+  const percent = Math.round((speed - 1) * 100);
+  const words = execFileSync(PYTHON, [EDGE_SCRIPT], {
+    input: JSON.stringify({ text, voice, rate: `${percent >= 0 ? "+" : ""}${percent}%`, out }),
+    stdio: ["pipe", "pipe", "inherit"],
+  });
+  return JSON.parse(words);
+};
+
+// Edge reports each word without its punctuation. Finds those words in the
+// spoken line and gives their times to the script's own words, so captions keep
+// the punctuation that breaks them into phrases. `shift` is the silence trimmed
+// off the start. Returns null when `say` and `text` differ in word count.
+// Edge starts a word that follows a pause inside the silence, 120 to 160 ms
+// before it is heard (measured 2026-10-21), so such a word starts where the
+// sound comes back.
+const edgeCaptions = (text, spoken, words, shift, pauses) => {
+  const shown = text.trim().split(/\s+/);
+  const said = spoken.trim().split(/\s+/);
+  if (shown.length !== said.length) return null;
+  const ranges = [];
+  let pos = 0;
+  for (const word of said) {
+    const at = spoken.indexOf(word, pos);
+    ranges.push([at, at + word.length]);
+    pos = at + word.length;
+  }
+  const times = said.map(() => null);
+  let from = 0;
+  for (const word of words) {
+    const at = spoken.indexOf(word.text, from);
+    if (at < 0) continue;
+    from = at + word.text.length;
+    const k = ranges.findIndex(([start, end]) => at >= start && at < end);
+    if (k >= 0) times[k] = { start: times[k]?.start ?? word.start, end: word.end };
+  }
+  // A word Edge didn't report (a lone dash, an emoji) shows as the one before ends.
+  let previousEnd = 0;
+  const captions = shown.map((word, k) => {
+    let start = times[k] ? Math.max(0, times[k].start - shift) : previousEnd;
+    const pause = pauses.find((p) => start >= p.start - 0.02 && start < p.end);
+    if (times[k] && pause) start = pause.end;
+    const end = times[k] ? Math.max(start, times[k].end - shift) : previousEnd;
+    previousEnd = end;
+    return {
+      text: (k === 0 ? "" : " ") + word,
+      startMs: Math.round(start * 1000),
+      endMs: Math.round(end * 1000),
+      timestampMs: Math.round(((start + end) / 2) * 1000),
+      confidence: null,
+    };
+  });
+  return { captions, matched: `${times.filter(Boolean).length}/${said.length} words timed by Edge` };
+};
+
+let tts;
+if (!EDGE) {
+  const { KokoroTTS } = await import("kokoro-js");
+  tts = await KokoroTTS.from_pretrained("onnx-community/Kokoro-82M-v1.0-ONNX", {
+    dtype: "fp32",
+    device: "cpu",
+  });
+}
 
 mkdirSync(AUDIO_DIR, { recursive: true });
+// Edge's own MP3s, kept for reference; the video plays the WAVs.
+const EDGE_DIR = "out/voice-edge";
+if (EDGE) mkdirSync(EDGE_DIR, { recursive: true });
 const scenes = [];
 let cursor = 0;
 for (const scene of story.scenes) {
-  const audio = await tts.generate(scene.say ?? scene.text, {
-    voice: story.voice,
-    speed: story.speed,
-  });
-  const sr = audio.sampling_rate;
-  const samples = normalize(trim(audio.audio, sr));
+  const spoken = scene.say ?? scene.text;
+  let sr;
+  let samples;
+  let edgeTimed = null;
+  if (EDGE) {
+    sr = 24000;
+    const mp3 = `${EDGE_DIR}/${scene.id}.mp3`;
+    const words = edgeSpeak(spoken, story.voice, story.speed ?? 1, mp3);
+    const decoded = decode(mp3, sr);
+    const [start, end] = speechRange(decoded, sr);
+    samples = normalize(decoded.slice(start, end));
+    edgeTimed = edgeCaptions(scene.text, spoken, words, start / sr, findPauses(samples, sr));
+  } else {
+    const audio = await tts.generate(spoken, {
+      voice: story.voice,
+      speed: story.speed,
+    });
+    sr = audio.sampling_rate;
+    samples = normalize(trim(audio.audio, sr));
+  }
   writeWav(`${AUDIO_DIR}/${scene.id}.wav`, samples, sr);
 
   const voiceSeconds = samples.length / sr;
-  const { captions, matched } = timeWords(scene.text, findPauses(samples, sr), voiceSeconds);
+  // Kokoro gives no word times, so they're estimated from the pauses; so are
+  // Edge's when `say` and `text` differ in word count.
+  const { captions, matched } =
+    edgeTimed ?? timeWords(scene.text, findPauses(samples, sr), voiceSeconds);
   // A scene can hold the voice back with its own "lead" (seconds).
   const lead = scene.lead ?? leadIn;
   const durationInFrames = Math.ceil((lead + voiceSeconds + tail + scene.hold) * fps);

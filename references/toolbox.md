@@ -5,9 +5,9 @@ Everything this workflow uses, and when to reach for it. Check what is installed
 ## Contents
 - The Remotion skills
 - media-use (HyperFrames Agent Media OS)
-- Voice: Kokoro, HeyGen, ElevenLabs, their own recording
+- Voice: Kokoro, Edge TTS, HeyGen, ElevenLabs, their own recording
 - Music and sound effects
-- Screenshots, images and brand assets
+- Screenshots, screen recordings, images and brand assets
 - Verification tools
 - This skill's own scripts and template
 - Claude Code helpers
@@ -70,9 +70,19 @@ Install: `npx skills add heygen-com/hyperframes@media-use -g -y`. Avoid skills l
 | Source | Cost | Notes |
 | --- | --- | --- |
 | Kokoro (`kokoro-js` 1.2.1) | Free, offline after the first ~330 MB model download | `scripts/voice-samples.mjs` writes samples of `am_michael`, `am_fenrir`, `bm_george`, `af_heart` and `bf_emma`; `scripts/make-voice.mjs` narrates a `story.json` and writes one WAV per scene plus `voice.json` (scene lengths in frames, word timings). Every scene is normalized to -20 dBFS RMS with silence trimmed. |
+| Edge TTS (`edge-tts` 7.3.1, Python) | Free, online, no key | Microsoft's neural voices in many languages, including Iraqi Arabic (`ar-IQ-RanaNeural`, `ar-IQ-BasselNeural`), Saudi, Egyptian and Persian. No Kurdish voice. The same two scripts handle it, with measured word timings (below). It is the Edge browser's read-aloud service, not a licensed API: fine for personal videos; for client or paid work use the same voices through Azure AI Speech, or ElevenLabs. |
 | The person's own recording | Free | Best for tributes. Needs the same per-word timings, so transcribe it (`remotion-captions`, or the `media-use` audio engine) to get them. |
 | HeyGen TTS | Free allowance with OAuth sign-in | Through `media-use resolve --type voice`. |
 | ElevenLabs | Paid API key | Offer it, don't assume it. |
+
+Edge voices (end-to-end tested 2026-10-21 with Iraqi Arabic, including a render):
+1. Install once: `python -m pip install edge-tts` (set `PYTHON` if the command isn't `python` on Windows or `python3` elsewhere). `kokoro-js` isn't needed for Edge.
+2. Samples to pick by ear: `node scripts/voice-samples.mjs "<a line in the video's language>" --voices ar-IQ-RanaNeural,ar-IQ-BasselNeural,ar-SA-ZariyahNeural,ar-SA-HamedNeural,ar-EG-SalmaNeural,ar-EG-ShakirNeural`. They land in `out/voice-samples/` as MP3s. `python -m edge_tts --list-voices` lists the rest.
+3. Put the chosen name in `story.json`'s `voice` and run `node scripts/make-voice.mjs` as usual. It sees an Edge name (`xx-XX-…Neural`) and calls `scripts/edge-voice.py`; `speed` 1.1 becomes Edge's rate `+10%`. It writes the same WAVs and `voice.json` as the Kokoro path, keeps Edge's own MP3s in `out/voice-edge/`, and decodes them with `ffmpeg` (or `npx remotion ffmpeg`).
+
+Each scene's line reads "x/y words timed by Edge". Edge leaves punctuation out of its words, so they are matched back to the script's own words, and a word after a pause starts where the sound comes back: Edge puts it 120 to 160 ms early, inside the silence. If the line reads "breaks" instead, `say` and `text` differ in word count and the times were estimated the Kokoro way; keep `say` to the same word count (`"say": "… كلود …"` for a shown "Claude" works) to keep measured times.
+
+No free voice here speaks Kurdish. For Kurdish narration the person's own recording comes first; check HeyGen's and ElevenLabs' current language lists before offering either.
 
 The person picks the voice by ear from samples, never from their name or a guess about gender.
 
@@ -82,9 +92,10 @@ Full setup is in music.md. The short version: use real royalty-free music from t
 
 The HeyGen CLI is Linux and macOS only. On Windows, install it inside WSL and run it through `wsl`; the OAuth sign-in trick (run the login in the background with `BROWSER=echo`, read the printed URL, open it on Windows) is in music.md.
 
-## Screenshots, images and brand assets
+## Screenshots, screen recordings, images and brand assets
 
 - **Live sites:** headless Chrome with its own profile (`--user-data-dir`), `--window-size=1440,900` for desktop and `390,844` for phone, `--virtual-time-budget=8000` so the page has loaded. Take a phone shot of every site shown on a laptop.
+- **Screen recordings of a real flow** (clicks, typing, a menu opening): the `ui-demo` skill (`affaan-m/ecc@ui-demo`, installed 2026-10-21). It drives Playwright through discover, rehearse and record, with a visible cursor and natural pacing. Use it for the raw footage only and skip its injected subtitle bar, because this skill's captions carry the words. Set both `viewport` and `recordVideo.size` to `1440x900` for the laptop or `390x844` for the phone (without `size`, Playwright scales the video down to fit 800x800). Convert the WebM to a constant-rate MP4 before using it: `ffmpeg -i demo.webm -c:v libx264 -crf 18 -pix_fmt yuv420p -r 30 -movflags +faststart public/rec/demo.mp4`, then play it inside the device frame with `<Video>` from `@remotion/media` (`Devices.tsx`'s `Shot` takes images only, so add a video variant). Look at one frame at full size first: if the text is soft, use screenshots. For a plain scroll down a page, a tall screenshot (`--window-size=1440,4000`) panned in Remotion is sharper than a recording. Needs `npm i -D playwright` and `npx playwright install chromium` in the project.
 - **Apps:** look for `docs/screenshots/` or golden test images (`test/**/goldens/*.png`) in the repos first.
 - **Read every image before using it:** check for private data, empty areas and that it is the right page.
 - **Logos, icons, stock images:** `media-use resolve --type logo|icon|image`.
@@ -94,8 +105,13 @@ The HeyGen CLI is Linux and macOS only. On Windows, install it inside WSL and ru
 
 - **Stills:** `scripts/stills.mjs` bundles once and renders frames by number, by scene end (`end:<scene>`) or by word (`<word>@<scene>+<seconds>`) to `out/stills/`. Don't use `remotion render --frames` for this: it fails with `EINVAL` once the composition has scene audio.
 - **Audio:** `scripts/check-audio.mjs` measures speech against the music bed, clipping, and spot windows (`--at 1.2-1.9`). Aim for speech near -20 dBFS and the bed 8 to 12 dB under it.
-- **ffmpeg:** `npx remotion ffmpeg` is bundled. It lacks some filters (`fps`, `tile`), so extract frames one `-ss` at a time:
-  `npx remotion ffmpeg -ss <sec> -i out/x.mp4 -frames:v 1 -vf scale=540:-1 out/check.png`.
+- **ffmpeg:** the full build is installed (9.0.2, `winget install Gyan.FFmpeg`, 2026-10-21; open a new shell after installing so `ffmpeg` and `ffprobe` are on PATH). Tested commands:
+  - one frame: `ffmpeg -ss <sec> -i out/x.mp4 -frames:v 1 -vf scale=540:-1 out/check.png`
+  - a contact sheet, 18 frames in one image: `ffmpeg -i out/x.mp4 -vf "fps=1/2,scale=320:-1,tile=6x3" -frames:v 1 out/sheet.png` (a frame every 2 s covers 36 s; for longer videos use `fps=1/<seconds÷18>`)
+  - loudness: `ffmpeg -nostats -i out/x.mp4 -af ebur128=framelog=quiet -f null -` prints the integrated LUFS (around -14 LUFS suits YouTube and social apps)
+  - phone clips: production.md, "Pitfalls"
+
+  On a machine without it, `npx remotion ffmpeg` is bundled but lacks `fps` and `tile`, so extract frames one `-ss` at a time.
 - **Mediabunny** (`remotion-multimedia`): durations and dimensions of audio and video files.
 - You can't hear the result. Say so in the delivery message and ask the person to judge the music and pronunciation.
 
@@ -103,8 +119,9 @@ The HeyGen CLI is Linux and macOS only. On Windows, install it inside WSL and ru
 
 | Path | What it is |
 | --- | --- |
-| `scripts/voice-samples.mjs` | Narrator samples to `out/voice-samples/` |
-| `scripts/make-voice.mjs` | Narration for every scene, normalized, with word timings |
+| `scripts/voice-samples.mjs` | Narrator samples to `out/voice-samples/` (Kokoro by default, Edge with `--voices`) |
+| `scripts/make-voice.mjs` | Narration for every scene, normalized, with word timings (Kokoro, or Edge for an Edge voice name) |
+| `scripts/edge-voice.py` | Speaks one line with Edge TTS and returns each word's time; called by the two scripts above |
 | `scripts/heygen-music.mjs` | Search the HeyGen music catalog and download picks (calls the CLI through `wsl` on Windows) |
 | `scripts/stills.mjs` | Single-frame checks |
 | `scripts/check-audio.mjs` | Loudness and balance measurement |
@@ -112,7 +129,7 @@ The HeyGen CLI is Linux and macOS only. On Windows, install it inside WSL and ru
 | `assets/examples/` | The finished "My Life with Claude" scenes and timeline, to copy staging from |
 | `evals/evals.json` | Test prompts and assertions for this skill |
 
-The scripts must be copied into the Remotion project's own `scripts/` folder: Node resolves `kokoro-js` from the script's folder, so running them from the skill folder fails with `ERR_MODULE_NOT_FOUND`.
+The scripts must be copied into the Remotion project's own `scripts/` folder: Node resolves `kokoro-js` from the script's folder, so running them from the skill folder fails with `ERR_MODULE_NOT_FOUND`. Copy `edge-voice.py` with them; the voice scripts look for it next to themselves.
 
 The template and example scenes were built for the funny story style (freeze-frame opener, reaction zoom, terminal gags). For other styles reuse the timeline, narration, captions, photo card, device mockups and counter, and write scenes for the style's shape (styles.md) instead of copying the gags.
 
@@ -122,7 +139,12 @@ Searched skills.sh for video skills. The strong matches are all from `heygen-com
 
 If the person ever wants the HyperFrames engine instead, install a single skill with `npx skills add https://github.com/heygen-com/hyperframes --skill <name>` (for example `product-launch-video` for a website-based promo, or `faceless-explainer` for a text-to-video explainer), and tell them it replaces the Remotion steps for that video. Not recommended without checking: `*/superpowers@ai-video-generation` and `prime-skills/*` (huge install counts, repos with a handful of stars), and `remotion-to-hyperframes` (only for porting).
 
-The `npx skills find` search returned nothing from the cloud sandbox for any query, even "remotion", so use skills.sh directly or run the command on the PC.
+Second pass (2026-10-21, `npx skills find` with 29 queries on the PC; it returns nothing from the cloud sandbox, even for "remotion"):
+- **Installed:** `affaan-m/ecc@ui-demo` (repo about 285k stars) for screen recordings. Also added: the full ffmpeg, and Edge TTS under "Voice".
+- **Not installed, because they trigger on the same requests as this skill** ("make me a video", Remotion, explainer, product demo) and would compete with it: `coreyhaines31/marketingskills@video`, `iart-ai/motion-design-skills` (ships its own `remotion-video`), `affaan-m/ecc@video-editing`.
+- **`browser-use/video-use`** (about 29k stars): strong for cutting long talking-head or vlog footage by its transcript, but it is a separate ffmpeg pipeline that needs an ElevenLabs key for transcription. Offer it only when the person brings long raw footage to cut.
+- **Thinner than what is here:** `digitalsamba/claude-code-video-toolkit@ffmpeg` and `@playwright-recording`; `mengto/skills@browser-video-recording` is built for the Codex in-app browser and macOS; `aahl/skills@edge-tts` is a short wrapper that needs `uv`, so Edge TTS is documented directly.
+- **Still avoid** `*/superpowers@ai-video-generation` and `@ai-avatar-video`: six copies with 300k to 800k installs each, from repos with 3 to 8 stars.
 
 ## Claude Code helpers
 

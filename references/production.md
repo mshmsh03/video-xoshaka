@@ -16,7 +16,7 @@ new subfolder of the person's projects folder. Then:
 
 ```bash
 npx remotion add @remotion/transitions @remotion/google-fonts @remotion/media @remotion/captions
-npm i -D kokoro-js@1.2.1
+npm i -D kokoro-js@1.2.1   # Kokoro voices; an Edge voice needs `python -m pip install edge-tts` instead
 mkdir -p public/photos public/shots public/sfx public/bgm scripts
 ```
 
@@ -24,9 +24,10 @@ Copy from this skill:
 - `assets/template/src/*` → `src/`. You get `theme.ts`, `ChapterLabel.tsx`, and
   `story/` with the components, `StoryVideo.tsx`, `voice.ts` and a sample
   `story.json`.
-- `scripts/*.mjs` → the project's `scripts/`. They have to live inside the
-  project: Node resolves `kokoro-js` from the script's own folder, so running
-  them from the skill folder fails with `ERR_MODULE_NOT_FOUND`.
+- `scripts/*` (the `.mjs` scripts and `edge-voice.py`) → the project's
+  `scripts/`. They have to live inside the project: Node resolves `kokoro-js`
+  from the script's own folder, so running them from the skill folder fails
+  with `ERR_MODULE_NOT_FOUND`.
 
 Add `"resolveJsonModule": true` to tsconfig `compilerOptions`. Register the
 composition in `src/Root.tsx`:
@@ -44,17 +45,18 @@ public/sfx/<name>.wav https://remotion.media/<name>.wav`). Good ones are
 Voice: run `node scripts/voice-samples.mjs "<a line from their story>"`, open
 `out/voice-samples/`, and let the person choose. Don't pick a voice from their
 name. Put the choice in `story.json`, then `node scripts/make-voice.mjs`. The
-first run downloads the model (about 330 MB).
+first run downloads the model (about 330 MB). For Arabic, or another language
+Kokoro doesn't speak, sample Edge voices with `--voices` (toolbox.md, "Voice").
 
 ## Files and what they do
 
 | File | Role |
 | --- | --- |
 | `src/story/story.json` | the script: scenes, text/say, lead/hold, voice, speed |
-| `scripts/make-voice.mjs` | TTS per scene → `public/voice/<id>.wav` + `src/story/voice.json` (durations, word timings) |
+| `scripts/make-voice.mjs` | TTS per scene (Kokoro, or Edge for a voice like `ar-IQ-RanaNeural`) → `public/voice/<id>.wav` + `src/story/voice.json` (durations, word timings) |
 | `src/story/voice.ts` | `sceneVoice`, `wordAt`, `voiceEnd` |
 | `src/story/StoryVideo.tsx` | the timeline: scenes in a `TransitionSeries`, music with ducking/silences, whooshes |
-| `src/story/Narration.tsx` | plays a scene's voice and shows the captions (phrase pages, current word in accent) |
+| `src/story/Narration.tsx` | plays a scene's voice and shows the captions (phrase pages, current word in accent, right to left for Arabic script) |
 | `src/story/scenes/*` | `FreezeScene` (cold open), `BeatScene` (chapter + visuals + narration) |
 | `assets/examples/` (skill) | the full "My life with Claude" scenes and timeline to copy gags from |
 
@@ -62,6 +64,21 @@ first run downloads the model (about 330 MB).
 
 - `<Narration id hideWords={[[5, 8]]} showCaptions />`: hide the words the scene
   shows itself (a quote); turn captions off where on-screen text says the same.
+- **Arabic and Kurdish captions.** `Narration` reads each caption page right to
+  left when its first letter is Arabic script, and also breaks pages at `،` `؛`
+  `؟`. The template's fonts have no Arabic letters, so load one and put it after
+  the heading font in `theme.ts` (tested with Noto Kufi Arabic):
+
+  ```ts
+  import { loadFont as loadArabic } from "@remotion/google-fonts/NotoKufiArabic";
+  const { fontFamily: latinHeading } = loadHeading("normal", { weights: ["500", "700"], subsets: ["latin"] });
+  const { fontFamily: arabicFont } = loadArabic("normal", { weights: ["500", "700"], subsets: ["arabic"] });
+  // Latin letters from the heading font, Arabic letters from the Arabic one.
+  export const headingFont = `${latinHeading}, ${arabicFont}`;
+  ```
+
+  Arabic fonts run wider, so a page can wrap to a second line; lower
+  `MAX_CHARS` in `Narration.tsx` if that crowds the frame.
 - `<PhotoCard base="friend1" name initial size mediaAspect={640/360} focusY={0.78} />`:
   a polaroid that finds `public/photos/<base>.(jpg|png|webp|gif|mp4|mov|webm)`
   through `getStaticFiles()`, which works in Studio and in renders. It falls
@@ -133,7 +150,8 @@ You can't hear the video, so measure it and look at frames:
    Speech should be around -20 dBFS, with the music bed 8 to 12 dB under it, no
    clipped samples, and quiet spots where you planned silences.
 4. **Frames from the final file** for anything time-sensitive:
-   `npx remotion ffmpeg -ss <sec> -i out/x.mp4 -frames:v 1 -vf scale=540:-1 out/check.png`.
+   `ffmpeg -ss <sec> -i out/x.mp4 -frames:v 1 -vf scale=540:-1 out/check.png`,
+   or the whole video on one contact sheet (toolbox.md, "Verification tools").
 5. **Open it** for the person (`Invoke-Item` on Windows, `open` on macOS).
    Tell them plainly that you checked frames and measured the audio, but
    couldn't listen. Ask them to judge the music mood and pronunciation.
@@ -149,7 +167,17 @@ You can't hear the video, so measure it and look at frames:
   Use `stills.mjs`, which bundles and then runs `remotion still`.
 - **`EPERM` on rename after a render:** see "Render to a new filename" above.
 - **The bundled ffmpeg** (`npx remotion ffmpeg`) lacks some filters (`fps`,
-  `tile`). Extract frames one `-ss` at a time.
+  `tile`). Use the full `ffmpeg` (installed 2026-10-21); without it, extract
+  frames one `-ss` at a time.
+- **Phone clips** are usually HEVC and often HDR (HLG), which can fail to play
+  or look washed out. Check with
+  `ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,color_transfer -of csv=p=0 clip.MOV`
+  and convert to H.264 before using it:
+  `ffmpeg -i clip.MOV -c:v libx264 -crf 18 -preset slow -pix_fmt yuv420p -c:a aac -b:a 192k -movflags +faststart public/photos/name.mp4`.
+  If `color_transfer` is `arib-std-b67` or `smpte2084` (HDR), also tone-map:
+  `-vf "zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=yuv420p"`.
+  It needs the colour tags real phone clips carry, and fails with "no path
+  between colorspaces" on an untagged file. Compare a frame before and after.
 - **Gag lands during the fade:** the transition overlaps the last 15 frames.
   Raise the scene's `hold` instead of squeezing the gag.
 - **Hand-held clips pan.** Something hidden in one frame shows up in the

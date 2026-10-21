@@ -68,7 +68,7 @@ Don't invent answers. If they skip one that matters (for example the call to act
 Ask this with round 1 whenever the person writes or speaks in more than English, or the audience might:
 
 - **Language** (header "Language"): English / Kurdish (Sorani) / Arabic / Mixed or other.
-- **Check the voice first.** The local Kokoro voices are mainly English; confirm a voice actually supports the language before promising it, and otherwise offer the person's own recording or another text-to-speech source.
+- **Check the voice first.** The local Kokoro voices are mainly English; confirm a voice actually supports the language before promising it, and otherwise offer the person's own recording or another text-to-speech source. For Arabic, Edge TTS has Iraqi, Saudi and Egyptian voices with word timings (toolbox.md, "Voice"). No free voice here speaks Kurdish, so for Kurdish offer the person's own recording first.
 - **Right-to-left text** (Arabic, Kurdish Sorani): animate whole words or whole lines, never letter by letter, and don't add letter-spacing or text outlines; each of those breaks the joined letter shapes. Reveal intact text with a mask instead. Mirror the layout and flip directional slides (a "forward" slide goes the other way). Use a font that supports the script and check the rendered frames by eye. Captions that mix languages need each run in its own direction. Ask a native speaker to read the final text, since you can't judge wording by eye.
 
 ## Recap, confirm, save brief.md

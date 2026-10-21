@@ -17,6 +17,9 @@ type Page = { words: Word[]; startMs: number; endMs: number };
 const MAX_CHARS = 26;
 // Periods that don't end a phrase (keep in sync with scripts/make-voice.mjs).
 const ABBREVIATION = /^(Mr|Mrs|Ms|Dr|St|Jr|vs|etc|e\.g|i\.e|a\.m|p\.m)\.$/i;
+// Arabic-script lines (Arabic, Kurdish Sorani) read right to left. The first
+// letter decides, so a mixed line follows the language it starts in.
+const RTL = /^[^\p{L}]*[֐-ࣿיִ-﷿ﹰ-﻿]/u;
 
 // Short caption pages that break at punctuation, so each reads as a phrase.
 const toPages = (words: Word[]): Page[] => {
@@ -36,7 +39,7 @@ const toPages = (words: Word[]): Page[] => {
     const length = current.map((w) => w.text).join("").length;
     if (current.length > 0 && length + word.text.length > MAX_CHARS) flush();
     current.push(word);
-    if (/[.,:;?!]$/.test(word.text) && !ABBREVIATION.test(word.text.trim())) flush();
+    if (/[.,:;?!،؛؟]$/.test(word.text) && !ABBREVIATION.test(word.text.trim())) flush();
   }
   flush();
   return pages;
@@ -90,6 +93,7 @@ export const Narration: React.FC<NarrationProps> = ({
             left: 100,
             right: 160,
             top,
+            direction: RTL.test(page.words.map((w) => w.text).join("")) ? "rtl" : "ltr",
             fontFamily: headingFont,
             fontSize: 64,
             fontWeight: 700,
