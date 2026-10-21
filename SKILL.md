@@ -17,7 +17,7 @@ What makes any of them look custom is real material: the person's own clip, thei
 - `references/story-and-comedy.md`: finding material and what to keep private, writing `story.json`, timing visuals to words, and the comedy playbook (for the funny style).
 - `references/production.md`: project setup, components, formats, screenshots, verification and the pitfalls already hit. Read it before building.
 - `references/music.md`: HeyGen music setup (including the Windows/WSL sign-in), picking a track, ducking and silence.
-- `references/toolbox.md`: every tool, skill and CLI this workflow uses and when to reach for it: the Remotion skills, `media-use`, HeyGen, Kokoro, ElevenLabs, ffmpeg, headless Chrome and the bundled scripts.
+- `references/toolbox.md`: every tool, skill and CLI this workflow uses and when to reach for it: the Remotion skills, `media-use`, `ui-demo`, HeyGen, Kokoro, Edge TTS, ElevenLabs, ffmpeg, headless Chrome and the bundled scripts.
 
 ## Workflow
 
@@ -41,8 +41,8 @@ If they gave a story ("X told me to buy it, I did it with my friend Y") or a mes
 ### 2. Gather material
 
 - **Their notes** (vault, journal, project folders, git history): send a research subagent for a dated timeline, the people and turning points, and a list of private things to keep out (story-and-comedy.md). Don't put anything private in the video.
-- **Their media:** look at each clip and photo yourself. Check several frames per clip for licence plates, badges and screens, and decide the crop (`focusY`). Ask who is who if a clip shows more than one person.
-- **Their work:** screenshots of live sites (headless Chrome, desktop and phone) and existing app screenshots in their repos.
+- **Their media:** look at each clip and photo yourself. Check several frames per clip for licence plates, badges and screens, and decide the crop (`focusY`). Ask who is who if a clip shows more than one person. Convert phone clips to H.264 first (production.md, "Pitfalls").
+- **Their work:** screenshots of live sites (headless Chrome, desktop and phone) and existing app screenshots in their repos, or a screen recording of a real click-through with the `ui-demo` skill (toolbox.md).
 - **Brand assets:** their real logo, never redrawn (`media-use resolve --type logo` finds official marks), their colours and fonts.
 - **Facts for a promo or tutorial:** every number, price, feature and step comes from the person or from something you checked. Don't invent claims.
 
@@ -52,7 +52,7 @@ First write `design.md` (palette, fonts, logo, motion and text rules, from the b
 
 ### 4. Voice
 
-Skip this step for a no-narration video (then captions carry the words). Otherwise generate samples with `scripts/voice-samples.mjs`, open the folder, and let the person pick by ear (`bm_george` worked well for comedy at speed 1.1; calmer voices suit tributes and tutorials). Then run `scripts/make-voice.mjs`. It prints each scene's length and a "breaks" alignment line. Print the word timings and check that no word spans over a second (production.md, "Pitfalls"). Other voice sources are in toolbox.md.
+Skip this step for a no-narration video (then captions carry the words). Otherwise generate samples with `scripts/voice-samples.mjs` (for Arabic, Edge voices with `--voices`; toolbox.md, "Voice"), open the folder, and let the person pick by ear (`bm_george` worked well for comedy at speed 1.1; calmer voices suit tributes and tutorials). Then run `scripts/make-voice.mjs`. It prints each scene's length and a "breaks" alignment line (or "words timed by Edge" for an Edge voice). Print the word timings and check that no word spans over a second (production.md, "Pitfalls"). Other voice sources are in toolbox.md.
 
 ### 5. Open the preview early
 

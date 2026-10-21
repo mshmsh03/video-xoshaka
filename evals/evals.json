@@ -107,6 +107,21 @@
         "format-and-length: vertical 9:16 at about 20 seconds with captions outside the platform safe zones",
         "gate-before-render: it shows the script/storyboard and the preview and does not render the final file before approval"
       ]
+    },
+    {
+      "id": 7,
+      "prompt": "اريد فيديو قصير بالعربي لعيد ميلاد اخي آزاد، ٣٠ ثانية للواتساب ستاتس، بصوت راوي عراقي. الصور في C:\\Users\\me\\Pictures\\azad",
+      "expected_output": "An Arabic birthday video for WhatsApp Status: the interview confirms Arabic (Iraqi), the person picks between Edge voice samples such as ar-IQ-RanaNeural and ar-IQ-BasselNeural by ear, narration comes from make-voice.mjs with Edge word timings, captions read right to left in a font with Arabic letters, and the script waits for approval.",
+      "files": [],
+      "assertions": [
+        "language-confirmed: it confirms the video language is Arabic (Iraqi dialect) and does not offer the English-only Kokoro voices as the narrator",
+        "edge-samples-by-ear: it generates samples of several Arabic Edge voices with voice-samples.mjs --voices and lets the person pick by ear",
+        "edge-narration: story.json uses the chosen Edge voice name and make-voice.mjs reports words timed by Edge for each scene",
+        "rtl-captions: captions read right to left with whole words highlighted, never letter by letter, in a font that has Arabic letters",
+        "script-in-arabic: the narration and on-screen text are written in Arabic and the person is asked to check the wording",
+        "format-whatsapp: vertical 9:16 at about 30 seconds with the default caption position for WhatsApp Status",
+        "licence-note: for personal use Edge TTS is fine; it does not present Edge TTS as licensed for client or paid work"
+      ]
     }
   ]
 }

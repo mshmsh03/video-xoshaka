@@ -28,7 +28,9 @@ Restart Claude Code, then type `/video-xoshaka`.
 - Node.js 18 or newer. The skill sets up Remotion itself.
 - Remotion is free for individuals and small teams (up to 3 people). Bigger companies need a paid licence: see [remotion.dev/license](https://www.remotion.dev/license).
 - Optional: the HeyGen CLI for real royalty-free music (Linux and macOS; on Windows it runs inside WSL). Without it, the skill asks you for a track or another source.
-- The free narrator voice (Kokoro) downloads a model of about 330 MB the first time.
+- The free narrator voice (Kokoro) downloads a model of about 330 MB the first time. It speaks English.
+- Optional, for Arabic and other languages: Python 3 with `python -m pip install edge-tts` for free Microsoft Edge voices (Iraqi, Saudi, Egyptian Arabic and many more), with right-to-left captions. There is no free Kurdish voice yet, so record your own.
+- Optional: ffmpeg for converting phone clips and checking renders. Remotion's bundled copy covers the basics.
 
 ## How a video is made
 
@@ -48,7 +50,7 @@ Restart Claude Code, then type `/video-xoshaka`.
 | --- | --- |
 | `SKILL.md` | The skill: the workflow and principles |
 | `references/` | The interview, styles and safe zones, storyboard and gates, scripting and comedy, production notes, music, toolbox |
-| `scripts/` | Voice samples, narration with word timings, HeyGen music search, stills, audio check |
+| `scripts/` | Voice samples, narration with word timings (Kokoro or Edge TTS), HeyGen music search, stills, audio check |
 | `assets/template/` | Starter components: timeline, captions, photo card, device mockups, terminal, counter |
 | `evals/` | Test prompts and assertions for the skill |
 
