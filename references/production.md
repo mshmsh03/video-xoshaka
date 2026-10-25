@@ -46,14 +46,15 @@ Voice: run `node scripts/voice-samples.mjs "<a line from their story>"`, open
 `out/voice-samples/`, and let the person choose. Don't pick a voice from their
 name. Put the choice in `story.json`, then `node scripts/make-voice.mjs`. The
 first run downloads the model (about 330 MB). For Arabic, or another language
-Kokoro doesn't speak, sample Edge voices with `--voices` (toolbox.md, "Voice").
+Kokoro doesn't speak, sample Edge voices with `--voices`; for Sorani Kurdish,
+use the F5 voices (toolbox.md, "Voice" and "Sorani voices").
 
 ## Files and what they do
 
 | File | Role |
 | --- | --- |
 | `src/story/story.json` | the script: scenes, text/say, lead/hold, voice, speed |
-| `scripts/make-voice.mjs` | TTS per scene (Kokoro, or Edge for a voice like `ar-IQ-RanaNeural`) → `public/voice/<id>.wav` + `src/story/voice.json` (durations, word timings) |
+| `scripts/make-voice.mjs` | TTS per scene (Kokoro; Edge for a voice like `ar-IQ-RanaNeural`; for `f5:studio-male`, the Sorani files from `tts/speak_story.py`) → `public/voice/<id>.wav` + `src/story/voice.json` (durations, word timings) |
 | `src/story/voice.ts` | `sceneVoice`, `wordAt`, `voiceEnd` |
 | `src/story/StoryVideo.tsx` | the timeline: scenes in a `TransitionSeries`, music with ducking/silences, whooshes |
 | `src/story/Narration.tsx` | plays a scene's voice and shows the captions (phrase pages, current word in accent, right to left for Arabic script) |
@@ -77,8 +78,8 @@ Kokoro doesn't speak, sample Edge voices with `--voices` (toolbox.md, "Voice").
   export const headingFont = `${latinHeading}, ${arabicFont}`;
   ```
 
-  Arabic fonts run wider, so a page can wrap to a second line; lower
-  `MAX_CHARS` in `Narration.tsx` if that crowds the frame.
+  Arabic fonts run wider, so a page can wrap to a second line; pass a lower
+  `maxChars` to `Narration` if that crowds the frame.
 
   For Kurdish, the font needs the Sorani letters ڕ ڵ ە ۆ ێ, and Google's
   `arabic` subset doesn't promise them. Noto Kufi Arabic, Noto Sans Arabic,
@@ -106,6 +107,14 @@ Kokoro doesn't speak, sample Edge voices with `--voices` (toolbox.md, "Voice").
 - Layout for 1080×1920: chapter label at y 180, visuals between 300 and 1400,
   captions from 1470. Keep 100 px side margins. Headlines are at least 84 px;
   supporting text at least 44 px.
+- Caption pages: `Narration` breaks pages at punctuation, splits a phrase
+  longer than `maxChars` (26 by default) into pages of even length, and
+  doesn't end a page on a word of one or two letters ("of", «لە»). Set
+  `maxChars` to what fits on one line at the caption size. For 1920×1080 this
+  worked (Sorani, IBM Plex Sans Arabic), passed from `BeatScene`:
+  `<Narration id={id} top={892} left={160} right={160} fontSize={56}
+  maxChars={46} align="center" />`, with the chapter label at y 70, 120 px
+  side margins and the visuals between y 160 and 840.
 - **Platform safe zones.** Instagram Reels, TikTok and Shorts lay their own
   username, caption and buttons over roughly the bottom 400 px and the right
   140 px. For those, pass `top={1300}` to `Narration` (or `captionTop` to
@@ -169,11 +178,29 @@ You can't hear the video, so measure it and look at frames:
 - **Captions stretched over a second.** The voice script matches pauses to
   punctuation with a small alignment. Abbreviations like "Mr." are excluded, and
   you should write "Mister" in `say` anyway. If a word still takes over a second,
-  check `make-voice.mjs`'s "x/y breaks" line and rephrase.
+  check `make-voice.mjs`'s "x/y breaks" line and rephrase. Long Sorani words
+  («وردەکارییەکان», 13 letters) really do take a second or a little more; if
+  every break matched, that is fine.
 - **`remotion render --frames` fails** with `EINVAL ... write` from
   `inline-audio-mixing` once there is scene audio. `--muted` doesn't help.
   Use `stills.mjs`, which bundles and then runs `remotion still`.
 - **`EPERM` on rename after a render:** see "Render to a new filename" above.
+- **`stills.mjs` fails on its first frame** now and then, right after
+  bundling (twice on 2026-10-25); the same frame renders fine by hand. Run it
+  again.
+- **Visuals land early on a word `say` spells out.** The word timer weighs
+  each caption word by its letters, so «٢٠ی», `PHP` or `8.1` counted as
+  almost nothing while the voice says «بیستی», «پی ئێچ پی». `make-voice.mjs`
+  now lines `text` up with `say` and counts what is actually spoken, and reads
+  Eastern Arabic digits as numbers. Keep the words both share spelled the
+  same, so they can line up.
+- **Sorani voice on Windows** (`scripts/sorani/speak_story.py` handles all
+  three): F5 prints its phonetic text and crashes with `UnicodeEncodeError`
+  in a cp1252 console (`python -I` ignores `PYTHONIOENCODING`, so the script
+  switches its output to UTF-8 itself); `torchaudio.load` fails because the
+  `torchcodec` DLL doesn't load, so WAVs are read with `soundfile`; and the
+  MMS stand-in's vocabulary has the Arabic kaf ك, not the Kurdish ک, so
+  every ک is silently dropped unless it is mapped first.
 - **The bundled ffmpeg** (`npx remotion ffmpeg`) lacks some filters (`fps`,
   `tile`). Use the full `ffmpeg` (installed 2026-10-21); without it, extract
   frames one `-ss` at a time.

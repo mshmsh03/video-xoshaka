@@ -7,6 +7,9 @@
 //   including Arabic, with measured word timings. Needs Python with
 //   `python -m pip install edge-tts` (scripts/edge-voice.py), and ffmpeg or the
 //   copy bundled with Remotion.
+// - Sorani Kurdish ("f5:studio-male"): spoken beforehand by tts/speak_story.py
+//   (F5-TTS Central Kurdish, offline, slow on a CPU); this script reads its
+//   files. See toolbox.md, "Sorani voices".
 //
 // Run from the Remotion project root:
 //   node scripts/make-voice.mjs [--story src/story/story.json]
@@ -30,6 +33,10 @@ const story = JSON.parse(readFileSync(STORY, "utf8"));
 const { fps, transitionFrames, leadIn, tail } = story;
 // Edge voice names look like "ar-IQ-RanaNeural"; Kokoro's like "bm_george".
 const EDGE = /^[a-z]{2,3}-.+Neural$/.test(story.voice);
+// Sorani voices ("f5:studio-male") are spoken beforehand by tts/speak_story.py
+// (from the skill's scripts/sorani/) into out/voice-raw/<id>.flac; this script
+// trims, normalizes and times them like Kokoro's.
+const RAW = /^(f5|mms):/.test(story.voice);
 
 // Where the speech starts and ends, keeping a little air around it.
 const speechRange = (samples, sr) => {
@@ -96,6 +103,50 @@ const spokenLength = (word) => {
   const hundreds = Math.floor(n / 100);
   return (hundreds ? ONES[hundreds].length + 7 : 0) + (n % 100 ? 7 : 0) || 4;
 };
+// The same for each written word when `say` spells it differently ("٢٠ی" read
+// as "بیستی", "PHP" as "پی ئێچ پی"): the words both share line up, and each
+// run that differs takes the letters of what was actually said.
+const spokenLengths = (words, said) => {
+  const letters = (w) => spokenLength(w.replace(/[٠-٩]/g, (d) => d.charCodeAt(0) - 0x660));
+  const n = words.length;
+  const m = said.length;
+  const common = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      common[i][j] =
+        words[i] === said[j] ? common[i + 1][j + 1] + 1 : Math.max(common[i + 1][j], common[i][j + 1]);
+    }
+  }
+  const lengths = words.map(letters);
+  let i = 0;
+  let j = 0;
+  let runI = 0;
+  let runJ = 0;
+  const flush = () => {
+    if (i === runI) return;
+    const heard = said.slice(runJ, j).reduce((a, w) => a + letters(w), 0);
+    const own = words.slice(runI, i).map((w) => letters(w) || 1);
+    const ownTotal = own.reduce((a, b) => a + b, 0);
+    own.forEach((l, k) => (lengths[runI + k] = (heard * l) / ownTotal));
+  };
+  while (i < n && j < m) {
+    if (words[i] === said[j]) {
+      flush();
+      i++;
+      j++;
+      runI = i;
+      runJ = j;
+    } else if (common[i + 1][j] >= common[i][j + 1]) {
+      i++;
+    } else {
+      j++;
+    }
+  }
+  i = n;
+  j = m;
+  flush();
+  return lengths;
+};
 // Periods that don't end a sentence: titles, times, "e.g." and friends.
 const ABBREVIATION = /^(Mr|Mrs|Ms|Dr|St|Jr|vs|etc|e\.g|i\.e|a\.m|p\.m)\.$/i;
 
@@ -142,14 +193,15 @@ const alignBreaks = (breaks, pauses) => {
 
 // Pins clause breaks to pauses in the audio, then spreads each clause's words
 // over its time by how long they take to say.
-const timeWords = (text, pauses, duration) => {
+const timeWords = (text, pauses, duration, spoken = text) => {
   const words = text.split(/\s+/);
+  const lengths = spokenLengths(words, spoken.split(/\s+/));
   const isBreak = (word, i) =>
     i < words.length - 1 && /[.,:;?!،؛؟]$/.test(word) && !ABBREVIATION.test(word);
 
   // Where each break would fall if speech ran at an even pace, with extra time
   // for the stop itself.
-  const weights = words.map((w, i) => spokenLength(w) + 1 + (isBreak(w, i) ? 3 : 0));
+  const weights = words.map((w, i) => lengths[i] + 1 + (isBreak(w, i) ? 3 : 0));
   const total = weights.reduce((a, b) => a + b, 0);
   const breaks = [];
   let acc = 0;
@@ -177,7 +229,7 @@ const timeWords = (text, pauses, duration) => {
   const captions = [];
   for (const { w0: from, w1: to, t0: start, t1: end } of segments) {
     const slice = words.slice(from, to + 1);
-    const weights = slice.map((w) => spokenLength(w) + 1);
+    const weights = slice.map((_, k) => lengths[from + k] + 1);
     const total = weights.reduce((a, b) => a + b, 0);
     let t = start;
     slice.forEach((word, k) => {
@@ -307,7 +359,7 @@ const edgeCaptions = (text, spoken, words, shift, pauses) => {
 };
 
 let tts;
-if (!EDGE) {
+if (!EDGE && !RAW) {
   const { KokoroTTS } = await import("kokoro-js");
   tts = await KokoroTTS.from_pretrained("onnx-community/Kokoro-82M-v1.0-ONNX", {
     dtype: "fp32",
@@ -334,6 +386,9 @@ for (const scene of story.scenes) {
     const [start, end] = speechRange(decoded, sr);
     samples = normalize(decoded.slice(start, end));
     edgeTimed = edgeCaptions(scene.text, spoken, words, start / sr, findPauses(samples, sr));
+  } else if (RAW) {
+    sr = 24000;
+    samples = normalize(trim(decode(`out/voice-raw/${scene.id}.flac`, sr), sr));
   } else {
     const audio = await tts.generate(spoken, {
       voice: story.voice,
@@ -345,10 +400,10 @@ for (const scene of story.scenes) {
   writeWav(`${AUDIO_DIR}/${scene.id}.wav`, samples, sr);
 
   const voiceSeconds = samples.length / sr;
-  // Kokoro gives no word times, so they're estimated from the pauses; so are
-  // Edge's when `say` and `text` differ in word count.
+  // Kokoro and the Sorani voices give no word times, so they're estimated from
+  // the pauses; so are Edge's when `say` and `text` differ in word count.
   const { captions, matched } =
-    edgeTimed ?? timeWords(scene.text, findPauses(samples, sr), voiceSeconds);
+    edgeTimed ?? timeWords(scene.text, findPauses(samples, sr), voiceSeconds, spoken);
   // A scene can hold the voice back with its own "lead" (seconds).
   const lead = scene.lead ?? leadIn;
   const durationInFrames = Math.ceil((lead + voiceSeconds + tail + scene.hold) * fps);
