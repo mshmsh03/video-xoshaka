@@ -35,8 +35,16 @@ npx(
 const buf = readFileSync(wav);
 rmSync(wav);
 const SR = 16000;
-const n = (buf.length - 44) / 2;
-const sample = (i) => buf.readInt16LE(44 + i * 2) / 32768;
+// ffmpeg writes a LIST chunk before the samples, so find the data chunk
+// rather than assume a 44-byte header (reading the header as sound once
+// reported the same false peak, 0.931, for every video).
+let pos = 12;
+while (buf.toString("ascii", pos, pos + 4) !== "data") {
+  const size = buf.readUInt32LE(pos + 4);
+  pos += 8 + size + (size % 2);
+}
+const n = buf.readUInt32LE(pos + 4) / 2;
+const sample = (i) => buf.readInt16LE(pos + 8 + i * 2) / 32768;
 
 const level = (ranges) => {
   let sum = 0;
