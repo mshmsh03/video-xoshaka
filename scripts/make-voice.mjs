@@ -13,7 +13,7 @@
 //
 // Run from the Remotion project root:
 //   node scripts/make-voice.mjs [--story src/story/story.json]
-//     [--out src/story/voice.json] [--audio public/voice]
+//     [--out src/story/voice.json] [--audio public/voice] [--raw out/voice-raw]
 
 import { execFileSync, execSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -26,6 +26,8 @@ const arg = (name, fallback) => {
 const STORY = arg("story", "src/story/story.json");
 const OUT = arg("out", "src/story/voice.json");
 const AUDIO_DIR = arg("audio", "public/voice");
+// Where tts/speak_story.py left the Sorani recordings (f5:/mms: voices).
+const RAW_DIR = arg("raw", "out/voice-raw");
 // voice.json refers to the WAVs relative to public/.
 const AUDIO_SRC = AUDIO_DIR.replace(/^public\//, "");
 
@@ -388,7 +390,7 @@ for (const scene of story.scenes) {
     edgeTimed = edgeCaptions(scene.text, spoken, words, start / sr, findPauses(samples, sr));
   } else if (RAW) {
     sr = 24000;
-    samples = normalize(trim(decode(`out/voice-raw/${scene.id}.flac`, sr), sr));
+    samples = normalize(trim(decode(`${RAW_DIR}/${scene.id}.flac`, sr), sr));
   } else {
     const audio = await tts.generate(spoken, {
       voice: story.voice,

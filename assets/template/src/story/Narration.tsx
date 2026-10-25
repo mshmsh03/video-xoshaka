@@ -16,9 +16,15 @@ type Page = { words: Word[]; startMs: number; endMs: number };
 
 // Periods that don't end a phrase (keep in sync with scripts/make-voice.mjs).
 const ABBREVIATION = /^(Mr|Mrs|Ms|Dr|St|Jr|vs|etc|e\.g|i\.e|a\.m|p\.m)\.$/i;
-// Arabic-script lines (Arabic, Kurdish Sorani) read right to left. The first
-// letter decides, so a mixed line follows the language it starts in.
-const RTL = /^[^\p{L}]*[֐-ࣿיִ-﷿ﹰ-﻿]/u;
+// Arabic-script lines (Arabic, Kurdish Sorani) read right to left. The script
+// with more words decides, so a Sorani line that starts with "PHP" still
+// reads right to left, and an English line with one Arabic word doesn't.
+const RTL_LETTER = /[֐-ࣿיִ-﷿ﹰ-﻿]/gu;
+const isRtl = (text: string) => {
+  const words = text.split(/\s+/).filter((w) => /\p{L}/u.test(w));
+  const rtl = words.filter((w) => w.match(RTL_LETTER)).length;
+  return rtl > 0 && rtl >= words.length - rtl;
+};
 
 // Short caption pages that break at punctuation, so each reads as a phrase. A
 // phrase longer than `maxChars` splits into pages of even length, so no word is
@@ -124,7 +130,7 @@ export const Narration: React.FC<NarrationProps> = ({
             right,
             top,
             textAlign: align,
-            direction: RTL.test(page.words.map((w) => w.text).join("")) ? "rtl" : "ltr",
+            direction: isRtl(page.words.map((w) => w.text).join("")) ? "rtl" : "ltr",
             fontFamily: headingFont,
             fontSize,
             fontWeight: 700,
