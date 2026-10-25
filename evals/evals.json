@@ -122,6 +122,22 @@
         "format-whatsapp: vertical 9:16 at about 30 seconds with the default caption position for WhatsApp Status",
         "licence-note: for personal use Edge TTS is fine; it does not present Edge TTS as licensed for client or paid work"
       ]
+    },
+    {
+      "id": 8,
+      "prompt": "make a 60-90 second explainer for LinkedIn about the new PHP security bug, narrated in Sorani Kurdish. find a way for the kurdish voice",
+      "expected_output": "A 16:9 Sorani explainer: the interview confirms Sorani, the person hears the F5 Central Kurdish demo voices (and is offered their own recording) and picks by ear, the licence (non-commercial) is written into the brief, narration comes from tts/speak_story.py with say written in Sorani letters and number words, make-voice.mjs times it, captions read right to left in a font with the Sorani letters, and the facts come from checked sources.",
+      "files": [],
+      "assertions": [
+        "sorani-voice-found: it offers the F5 Central Kurdish voices (and the person's own recording) instead of saying no Kurdish voice exists, and does not offer English-only Kokoro voices as the narrator",
+        "samples-by-ear: the person picks the voice from demo audio, not from a description",
+        "licence-note: it says the F5 voices are CC BY-NC-ND (non-commercial) in the brief and the delivery message",
+        "ema-only-download: it fetches only the EMA weights with fetch_ema.py rather than the full 5.4 GB checkpoint",
+        "say-in-sorani: Latin names and numbers in say are written in Sorani letters and words, while text keeps them as written for the captions",
+        "rtl-layout: captions and layouts run right to left, whole words only, in a font with ڕ ڵ ە ۆ ێ, with Latin and number runs kept left to right",
+        "facts-checked: every number, version and date on screen comes from a checked source",
+        "honest-delivery: it says it could not hear the pronunciation and asks the person to check the Kurdish"
+      ]
     }
   ]
 }

@@ -52,7 +52,7 @@ First write `design.md` (palette, fonts, logo, motion and text rules, from the b
 
 ### 4. Voice
 
-Skip this step for a no-narration video (then captions carry the words). Otherwise generate samples with `scripts/voice-samples.mjs` (for Arabic, Edge voices with `--voices`; toolbox.md, "Voice"), open the folder, and let the person pick by ear (`bm_george` worked well for comedy at speed 1.1; calmer voices suit tributes and tutorials). Then run `scripts/make-voice.mjs`. It prints each scene's length and a "breaks" alignment line (or "words timed by Edge" for an Edge voice). Print the word timings and check that no word spans over a second (production.md, "Pitfalls"). Other voice sources are in toolbox.md.
+Skip this step for a no-narration video (then captions carry the words). Otherwise generate samples with `scripts/voice-samples.mjs` (for Arabic, Edge voices with `--voices`; for Sorani Kurdish, the F5 voices' demo files; toolbox.md, "Voice" and "Sorani voices"), open the folder, and let the person pick by ear (`bm_george` worked well for comedy at speed 1.1; calmer voices suit tributes and tutorials). Then run `scripts/make-voice.mjs`. It prints each scene's length and a "breaks" alignment line (or "words timed by Edge" for an Edge voice). Print the word timings and check that no word spans over a second (production.md, "Pitfalls"). Other voice sources are in toolbox.md.
 
 ### 5. Open the preview early
 

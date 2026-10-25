@@ -5,7 +5,7 @@ Everything this workflow uses, and when to reach for it. Check what is installed
 ## Contents
 - The Remotion skills
 - media-use (HyperFrames Agent Media OS)
-- Voice: Kokoro, Edge TTS, HeyGen, ElevenLabs, their own recording
+- Voice: Kokoro, Edge TTS, Sorani Kurdish (F5), HeyGen, ElevenLabs, their own recording
 - Music and sound effects
 - Screenshots, screen recordings, images and brand assets
 - Verification tools
@@ -71,6 +71,9 @@ Install: `npx skills add heygen-com/hyperframes@media-use -g -y`. Avoid skills l
 | --- | --- | --- |
 | Kokoro (`kokoro-js` 1.2.1) | Free, offline after the first ~330 MB model download | `scripts/voice-samples.mjs` writes samples of `am_michael`, `am_fenrir`, `bm_george`, `af_heart` and `bf_emma`; `scripts/make-voice.mjs` narrates a `story.json` and writes one WAV per scene plus `voice.json` (scene lengths in frames, word timings). Every scene is normalized to -20 dBFS RMS with silence trimmed. |
 | Edge TTS (`edge-tts` 7.3.1, Python) | Free, online, no key | Microsoft's neural voices in many languages, including Iraqi Arabic (`ar-IQ-RanaNeural`, `ar-IQ-BasselNeural`), Saudi, Egyptian and Persian. No Kurdish voice. The same two scripts handle it, with measured word timings (below). It is the Edge browser's read-aloud service, not a licensed API: fine for personal videos; for client or paid work use the same voices through Azure AI Speech, or ElevenLabs. |
+| F5-TTS Central Kurdish (`aranemini/central-kurdish-tts`) | Free, offline; **CC BY-NC-ND 4.0, non-commercial only** | Sorani Kurdish: three single-speaker voices (studio male, audiobook male, audiobook female), 24 kHz, the best free Sorani voice found (2026-10-25). Slow on a CPU, about 40 times real time. Steps under "Sorani voices" below. |
+| MMS Sorani (`razhan/mms-tts-ckb`) | Free, offline; Meta's MMS base is non-commercial | Flat and robotic, but it speaks a scene in seconds: a stand-in voice for building and timing while F5 runs. |
+| kurdishtts.com | Paid (about $12/month for public use; the free plan is evaluation only) | Many Sorani and Kurmanji voices with word timings. Needs the person's own account and API key. Not tested here. |
 | The person's own recording | Free | Best for tributes. Needs the same per-word timings, so transcribe it (`remotion-captions`, or the `media-use` audio engine) to get them. |
 | HeyGen TTS | Free allowance with OAuth sign-in | Through `media-use resolve --type voice`. |
 | ElevenLabs | Paid API key | Offer it, don't assume it. |
@@ -82,7 +85,31 @@ Edge voices (end-to-end tested 2026-10-21 with Iraqi Arabic, including a render)
 
 Each scene's line reads "x/y words timed by Edge". Edge leaves punctuation out of its words, so they are matched back to the script's own words, and a word after a pause starts where the sound comes back: Edge puts it 120 to 160 ms early, inside the silence. If the line reads "breaks" instead, `say` and `text` differ in word count and the times were estimated the Kokoro way; keep `say` to the same word count (`"say": "… كلود …"` for a shown "Claude" works) to keep measured times.
 
-No free voice here speaks Kurdish. For Kurdish narration the person's own recording comes first; check HeyGen's and ElevenLabs' current language lists before offering either.
+### Sorani voices
+
+End-to-end tested on 2026-10-25 with a 90 s Sorani explainer, including a render, on Windows with an Intel laptop CPU (no GPU) and 16 GB of RAM. Offer these alongside the person's own recording. For Kurmanji, no free voice has been tested; check HeyGen's and ElevenLabs' current language lists before offering either.
+
+1. **Samples to pick by ear, without the big download.** The model repo has a demo per voice: `curl -sSLo out/voice-samples/f5-<voice>.wav https://huggingface.co/aranemini/central-kurdish-tts/resolve/main/output-<voice>.wav` for `studio-male`, `audiobook-male` and `audiobook-female`. Its demo Spaces on Hugging Face were paused when tested, so don't count on them.
+2. **Install once**, in the project's `tts/` folder (on macOS and Linux the venv's Python is `tts/.venv/bin/python`):
+   ```bash
+   python -m venv tts/.venv
+   tts/.venv/Scripts/python -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+   tts/.venv/Scripts/python -m pip install f5-tts asosoft soundfile transformers
+   ```
+   Install the CPU build of torch first, or `f5-tts` pulls a CUDA build of several GB.
+3. **Model files.** Copy `scripts/sorani/fetch_ema.py` and `scripts/sorani/speak_story.py` into the project's `tts/`. From `https://huggingface.co/aranemini/central-kurdish-tts/resolve/main/`, download `F5TTS_v1_Base.yaml`, `vocab.txt`, `prompt-<voice>.wav` and `prompt-<voice>.txt` into `tts/f5-repo/`. Each voice's checkpoint (`model-<voice>.pt`) is 5.4 GB, mostly training state. `fetch_ema.py` downloads only the 1.35 GB of EMA weights that speaking needs, using HTTP range requests, six streams at once, resuming after dropped connections:
+   ```bash
+   tts/.venv/Scripts/python -I tts/fetch_ema.py https://huggingface.co/aranemini/central-kurdish-tts/resolve/main/model-studio-male.pt tts/f5-repo/studio-male-ema.pt
+   ```
+   It reads the checkpoint's layout with an allow-list unpickler (tensors and `OrderedDict` only), so a tampered file can't run code. `--list` prints the layout without downloading.
+4. **Narrate.** Set `story.json`'s `voice` to `"f5:<voice>"` (for example `"f5:studio-male"`). Speak the first scene alone with `tts/.venv/Scripts/python -I tts/speak_story.py --only <first scene id>` and let the person hear it. Then run the rest in the background. It writes `out/voice-raw/<id>.flac`; `--out` writes somewhere else, so a long run doesn't overwrite the stand-in voice the preview is using. Text goes through AsoSoft's normalizer and Kurdish G2P first, as in the model's own `infer.py`.
+5. **Time and normalize** with `node scripts/make-voice.mjs` as usual. For an `f5:` voice it reads `out/voice-raw/<id>.flac` instead of speaking, then trims, normalizes and estimates word times from the pauses, the way it does for Kokoro.
+
+**Writing `say` for F5.** The G2P reads only Kurdish letters. Write Latin names the way they sound, in Sorani letters (`PHP` becomes «پی ئێچ پی», `PHP2Shell` becomes «پی ئێچ پی تو شێڵ»), and write numbers as words (٢٢ becomes «بیست و دوو», 8.1 becomes «هەشت خاڵ یەک»). Keep `text` as written, for the captions. The word timer counts each caption word as what `say` speaks in its place, so these swaps don't make the visuals land early.
+
+**Time and stand-in.** At 32 sampling steps (`--nfe`), a 10 s scene took 6 to 7 minutes on the laptop CPU, so a 90 s video takes about an hour. While it runs, build and time the scenes with the MMS stand-in (`speak_story.py --engine mms`, seconds per scene; leave `voice` as `"f5:…"`, since make-voice only checks the prefix), then swap in the F5 files and run make-voice again. F5 sets a line's length from the reference prompt's pace, and `speed` in `story.json` scales it.
+
+**Licence.** The F5 Central Kurdish models are CC BY-NC-ND 4.0. That is fine for a personal post, but not for client work, paid work or a monetised channel. Note it in `brief.md` and the delivery message.
 
 The person picks the voice by ear from samples, never from their name or a guess about gender.
 
@@ -120,8 +147,10 @@ The HeyGen CLI is Linux and macOS only. On Windows, install it inside WSL and ru
 | Path | What it is |
 | --- | --- |
 | `scripts/voice-samples.mjs` | Narrator samples to `out/voice-samples/` (Kokoro by default, Edge with `--voices`) |
-| `scripts/make-voice.mjs` | Narration for every scene, normalized, with word timings (Kokoro, or Edge for an Edge voice name) |
+| `scripts/make-voice.mjs` | Narration for every scene, normalized, with word timings (Kokoro; Edge for an Edge voice name; for an `f5:` voice it reads the Sorani files `speak_story.py` wrote) |
 | `scripts/edge-voice.py` | Speaks one line with Edge TTS and returns each word's time; called by the two scripts above |
+| `scripts/sorani/speak_story.py` | Speaks every scene in Sorani with F5-TTS Central Kurdish (or the MMS stand-in) to `out/voice-raw/`; copy it into the project's `tts/` |
+| `scripts/sorani/fetch_ema.py` | Downloads only the EMA weights from a remote PyTorch checkpoint (1.35 GB of 5.4 GB for an F5 voice) |
 | `scripts/heygen-music.mjs` | Search the HeyGen music catalog and download picks (calls the CLI through `wsl` on Windows) |
 | `scripts/stills.mjs` | Single-frame checks |
 | `scripts/check-audio.mjs` | Loudness and balance measurement |
