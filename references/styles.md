@@ -45,11 +45,14 @@ The original style. Shape, comedy playbook and the gag toolbox are in story-and-
 
 ### Explainer
 
-- **Shape:** a question or surprising fact as the hook; the simple answer in one sentence; the explanation in three to five steps, each one idea; a one-line takeaway.
-- **Tone:** calm and curious. Use an analogy before a definition.
+- **Shape:** a question or surprising fact as the hook; the simple answer in one sentence; the explanation in three to five steps, each one idea; a one-line takeaway. For a class, make the teacher's questions the numbered chapter labels (what happened, why, how it was fixed), so the video can be paused between them.
+- **Audience:** ask who watches and what they already know (brief.md, round 2). Pitch the narration at beginners unless told otherwise, and even for experts say it plainly: put the depth (terms, version numbers, IDs) in small labels on screen, not in the voice. A developer-level class video about a PHP security bug was rejected as "too complex"; the plain rebuild was approved.
+- **Tone:** calm and curious. Use an analogy before a definition, and carry one everyday comparison through the scenes (PHP is a cook, each visit an order, memory the table that must be cleaned after every order), with a small legend that shows what each part stands for as the narrator names it.
+- **Words:** short everyday sentences, one idea each, the way the audience would say it. Long formal sentences with spelled-out English terms also make a TTS voice sound like it is reading, not speaking (toolbox.md, "Writing `say` for F5").
 - **Visuals:** simple diagrams built from shapes, numbered chapter labels, highlighted words, maps for geographic ideas (`remotion-maps`), real examples. Reveal one element at a time, on the word that names it.
 - **Voice and sound:** a calm voice at speed 1.0, captions on, soft music low under the voice or none.
-- **Care:** check every fact against a source and name the source in the delivery message. Mark anything you are unsure of and ask.
+- **Care:** check every fact against a source and name the source in the delivery message. Mark anything you are unsure of and ask. For beginners, leave out true but unneeded detail (estimates, scores, side stories).
+- **A better version of one they liked:** keep its look, voice and pacing, and change what they asked for. Redesigning everything at once lost what worked.
 
 ### Tutorial
 

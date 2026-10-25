@@ -90,6 +90,7 @@ Report back:
 - **Tone fits the purpose.** Funny is one option. A farewell, a product launch and a tutorial each need their own tone; don't force jokes where they don't belong.
 - **Hook early, one idea per scene.** The point is visible in the first two or three seconds, and every scene earns its place.
 - **Visuals land on words.** A visual arriving on its word beats any number of extra effects. When asked for "better" or "funnier", sharpen timing and wording before adding volume.
+- **Plain words for the audience.** Say it the way the people watching would say it. An everyday comparison beats correct jargon, and the technical terms can sit small on screen. Asked to beat a version they liked, keep what they liked and change what they asked for.
 - **One key beat.** The sincere line, the call to action or the takeaway, stated plainly and left room to land.
 - **Privacy is a feature.** Their notes contain things other people shouldn't see. The person trusts you to leave those out without being asked.
 - **Don't guess about people.** Let them pick the narrator voice by ear, never from their name. Confirm who is who in group clips. Don't invent quotes, feelings or claims the material doesn't support.

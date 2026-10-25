@@ -40,6 +40,8 @@ Ask these four together.
 7. **Colours** (header "Look"): Use my brand (I'll give the logo, colours, fonts) / You choose to fit the tone / Match something I'll show you (a video, a design, a website). If they pick the first or third, ask for the files or link in the free-text round.
 8. **Music** (header "Music"): Real royalty-free track picked for the mood (Recommended) / My own track (WhatsApp is fine; Instagram, TikTok and YouTube may mute or block copyrighted songs) / No music. If they pick a track, the mood comes from the style (styles.md, "Choosing music by style").
 
+For an explainer or tutorial, ask **Audience** (header "Audience") in place of Tone: Beginners (Recommended) / Some background / Experts. These styles are calm anyway, and the audience decides the words: the narration stays plain at every level, and only the on-screen labels get more technical (styles.md, "Explainer").
+
 ## Round 3: material and safety
 
 Ask these four together.

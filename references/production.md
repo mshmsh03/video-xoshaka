@@ -217,5 +217,15 @@ You can't hear the video, so measure it and look at frames:
   Raise the scene's `hold` instead of squeezing the gag.
 - **Hand-held clips pan.** Something hidden in one frame shows up in the
   next. Check at least four frames across the clip before choosing `focusY`.
+- **A second cut in the same project** (a longer class version next to the
+  social one): give it its own folder (`src/class/` with its own
+  `story.json`, `voice.json`, `voice.ts`, `useWord.ts`, a copy of
+  `Narration.tsx` and its scenes) and register one composition per cut in
+  `Root.tsx`. Narrate with `speak_story.py --story src/class/story.json --out
+  out/voice-raw-class`, then `make-voice.mjs --story src/class/story.json
+  --out src/class/voice.json --audio public/voice-class --raw
+  out/voice-raw-class`. Pass `--voice src/class/voice.json` to `stills.mjs`
+  and `check-audio.mjs` as well: without it, check-audio measured with the
+  first cut's timing and reported the music louder than the speech.
 - **The length creeps up** as jokes are added. Tell the person the length and
   offer the easiest scene to cut.
